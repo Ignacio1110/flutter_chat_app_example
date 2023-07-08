@@ -3,6 +3,8 @@ import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 import 'package:uuid/uuid.dart';
 
+import 'repository/mock_message_repository.dart';
+
 void main() {
   runApp(const MyApp());
 }
@@ -33,31 +35,35 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  List<types.Message> _messages = [];
+  final MockMessageRepository _repository = MockMessageRepository();
+  final List<types.Message> _messages = [];
   final _user = const types.User(
       id: '82091008-a484-4a89-ae75-a22bf8d6f3ac', firstName: '我');
 
+  final String roomId = "test_room_id";
+  Future<void> initMessages() async {
+    await _repository.init(); //初始化
+    List<types.Message> messages =
+        await _repository.fetchOlderMessage(roomId, 20);
+    _messages.addAll(messages);
+  }
+
+  Future<void> onEndReached() async {
+    List<types.Message> messages =
+        await _repository.fetchOlderMessage(roomId, 1, _messages.last);
+    setState(() {
+      _messages.addAll(messages);
+    });
+  }
+
   @override
   void initState() {
-    final user2 = const types.User(
-        id: '88091008-a484-4a89-ae75-a22bf8d6f3ac',
-        firstName: '別人',
-        imageUrl: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png');
-    _messages.insert(
-        0,
-        types.TextMessage(
-          author: user2,
-          id: Uuid().v4(),
-          text: '別人的訊息',
-        ));
+    initMessages();
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    _messages.forEach((element) {
-      print(element.id);
-    });
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
@@ -76,6 +82,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ));
           });
         },
+        onEndReached: onEndReached,
         user: _user,
         showUserNames: true,
         showUserAvatars: true,

@@ -144,8 +144,182 @@
    ```
 
 ##進階使用-分頁、Pagination
+1. 做聊天室的時候，如果歷史資料量非常龐大，每次開啟聊天室時將所有的聊天歷史資料從雲端下載下來，
+，會造成資料讀取時間拉長，也會對伺服器造成很大負擔。
+2. 通常會顯示前幾十筆資料，並在使用者滾動聊天室到底部時，再將雲端資料逐步下載，稱為pagination
+3. Chat Widget提供三個參數控制pagination，`onEndReached`, `onEndReachedThreshold` 和 `isLastPage`
+4. pagination提取資料的方式，依據後端設計不同，採取的方式也不同。在一個特定排序的資料表中，
+可以固定每20筆資料分為一頁。另一種方式是以document id作為起始點向後擷取20筆資料，或許還有其它的方式。
+5. 在網路上有看到pagination、infinite scroll、show more設計方式，三種的操作流程不同，基本核心概念還是分批次載入資料。
+
+以下為官方提供的簡易範例
+```dart
+// ...
+import 'package:http/http.dart' as http;
+
+class _MyHomePageState extends State<MyHomePage> {
+  //當前總共載入的頁數
+  int _page = 0;
+  // ...
+  @override
+  void initState() {
+    super.initState();
+    //在開啟聊天室畫面的時候，開始載入第一頁資料
+    _handleEndReached();
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+      body: Chat(
+        // ...
+        onEndReached: _handleEndReached,//滾動到底部時，獲取更新的資料
+      ),
+    );
+  
+  //從雲端獲取資料
+  //不同的後端或雲端資料庫所提供的API或許不同，這個範例採取的方式是用page區分頁數，每次固定提取20筆資料
+  Future<void> _handleEndReached() async {
+    final uri = Uri.parse(
+      'https://api.instantwebtools.net/v1/passenger?page=$_page&size=20',
+    );
+    final response = await http.get(uri);
+    final json = jsonDecode(response.body) as Map<String, dynamic>;
+    final data = json['data'] as List<dynamic>;
+    //將得到資料序列化，轉為class
+    final messages = data
+        .map(
+          (e) => types.TextMessage(
+            author: _user,
+            id: e['_id'] as String,
+            text: e['name'] as String,
+          ),
+        )
+        .toList();
+    setState(() {
+      //將新舊資料合併，並更新訊息列表以及頁面數
+      _messages = [..._messages, ...messages];
+      _page = _page + 1;
+    });
+  }
+}
+```
+
+###Mock message repository
+由於我暫時沒有適合的後端，所以做一個Mock Repository。
+我選擇的獲取資料方式，是以某一個文件為起始點，繼續向後擷取數筆資料。
+
+定義抽象類別`MessageRepository`這裡面提供兩個方法`fetchOlderMessage`、`fetchOlderMessage`，
+用來獲取更新或更舊的資料
+
+```dart
+// ../lib/repository/message_repository.dart
+
+abstract class MessageRepository {
+  //
+
+  Future<List<types.Message>> fetchOlderMessage(String roomId, int limit,
+      [types.Message? startMessage]);
+
+  Future<List<types.Message>> fetchNewerMessage(String roomId, int limit,
+      [types.Message? startMessage]);
+}
+
+```
+
+####實作Mock Repository
+Mock Repository用 `List<types.Message> remoteMessages = [];` 模擬雲端的資料，
+除了實作`fetchOlderMessage`，`fetchNewerMessage`，從 `remoteMessages`中取得數據並回傳外。
+也額外實現一個`init`方法，在初始化Mock Repository時將從`assets/messages.json`將模擬資料導入。
 
 
+```dart
+//...
+
+class MockMessageRepository implements MessageRepository {
+  RxBool isLoading = false.obs;
+  List<types.Message> remoteMessages = [];
+
+  init() async {
+    isLoading.value = true;
+    remoteMessages = await _loadMessages();
+    List<types.Message> messages = _generateMessages();
+    remoteMessages.addAll(messages);
+    isLoading.value = false;
+  }
+
+  @override
+  Future<List<types.Message>> fetchNewerMessage(String roomId, int limit,
+      [Message? startMessage]) async {
+    if (startMessage == null) {
+      return remoteMessages.take(limit).toList();
+    } else {
+      //以下模擬提取訊息
+      List<types.Message> messages = remoteMessages.reversed
+          .skipWhile((value) => value.id != startMessage.id)
+          .take(limit + 1)
+          .toList()
+          .reversed
+          .toList();
+      return messages.isEmpty ? [] : messages.skip(1).toList();
+    }
+  }
+
+  @override
+  Future<List<Message>> fetchOlderMessage(String roomId, int limit,
+      [Message? startMessage]) async {
+    if (startMessage == null) {
+      return remoteMessages.take(limit).toList();
+    } else {
+      List<types.Message> messages = remoteMessages.skipWhile((value) {
+        final bool b = value.id != startMessage.id;
+        return b;
+      }).toList();
+
+      messages = messages.take(limit + 1).toList();
+
+      return messages.isEmpty ? [] : messages.skip(1).toList();
+    }
+  }
+
+  Future<List<types.Message>> _loadMessages() async {
+    final response = await rootBundle.loadString('assets/messages.json');
+    final List<types.Message> messages = (jsonDecode(response) as List)
+        .map((e) => types.Message.fromJson(e as Map<String, dynamic>))
+        .toList();
+    return messages;
+  }
+
+  List<types.TextMessage> _generateMessages() {
+    const start = 1655624460000;
+    List<types.TextMessage> result = [];
+    for (int i = 1; i < 100; i++) {
+      types.TextMessage msg = _generateMessage(start - i * 1000 * 60 * 60);
+      result.add(msg);
+    }
+    return result;
+  }
+
+  types.TextMessage _generateMessage(int? createAt) {
+    Map<String, String> map = authors[Random().nextInt(authors.length)];
+    String textMessage = textSample[Random().nextInt(textSample.length)];
+
+    return types.TextMessage(
+      id: "${messageUUID.first}-$createAt",
+      text: textMessage,
+      author: types.User(
+        id: map['id'] as String,
+        firstName: map['firstName'] as String,
+      ),
+      createdAt: createAt,
+    );
+  }
+}
+```
+
+```yaml
+  assets:
+    - assets/messages.json
+```
 ##使用GetX進行狀態管理
 
 
