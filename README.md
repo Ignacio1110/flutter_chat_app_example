@@ -3,7 +3,8 @@
 這個範例使用Flyer Chat的Chat UI來快速建立一個Chat App，並運用GetX為狀態管理工具
 
 資料來源：[Flyer Chat官方文件](https://docs.flyer.chat/flutter/chat-ui/)
-##Basic Usage
+
+## Basic Usage
 1. 從pub.dev安裝所需要的package，flutter_chat_ui 1.6.8
 
     ```
@@ -72,7 +73,7 @@
 
 4. 官方範例-basic
 
-   以下範例，提供很基礎的Chat使用方式，message列表排序方式是index 0為最新訊息，
+   以下範例，提供很基礎的Chat使用方式，message列表排序方式是index 0為最新訊息。
    ```dart
    import 'dart:convert';
    import 'dart:math';
@@ -143,7 +144,7 @@
    }
    ```
 
-##進階使用-分頁、Pagination
+## 進階使用-分頁、Pagination
 1. 做聊天室的時候，如果歷史資料量非常龐大，每次開啟聊天室時將所有的聊天歷史資料從雲端下載下來，
 ，會造成資料讀取時間拉長，也會對伺服器造成很大負擔。
 2. 通常會顯示前幾十筆資料，並在使用者滾動聊天室到底部時，再將雲端資料逐步下載，稱為pagination
@@ -204,7 +205,7 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 ```
 
-###Mock message repository
+## Mock message repository
 由於我暫時沒有適合的後端，所以做一個Mock Repository。
 我選擇的獲取資料方式，是以某一個文件為起始點，繼續向後擷取數筆資料。
 
@@ -226,7 +227,7 @@ abstract class MessageRepository {
 
 ```
 
-####實作Mock Repository
+### 實作Mock Repository
 Mock Repository用 `List<types.Message> remoteMessages = [];` 模擬雲端的資料，
 除了實作`fetchOlderMessage`，`fetchNewerMessage`，從 `remoteMessages`中取得數據並回傳外。
 也額外實現一個`init`方法，在初始化Mock Repository時將從`assets/messages.json`將模擬資料導入。
@@ -320,8 +321,9 @@ class MockMessageRepository implements MessageRepository {
   assets:
     - assets/messages.json
 ```
-##使用GetX進行狀態管理
+
+## 使用GetX進行狀態管理
 
 
 
-##聊天室列表
+## 聊天室列表
