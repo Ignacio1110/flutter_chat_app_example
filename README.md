@@ -1,10 +1,15 @@
-# flutter_chat_app_example
+# Flutter如何透過Flyer Chat實作聊天室功能？
 
-這個範例使用Flyer Chat的Chat UI來快速建立一個Chat App，並運用GetX為狀態管理工具
+應用程式中聊天室功能很常見，自行從無到有建立整個聊天室邏輯需要很多時間，幸好Pub.dev上可以找到別人寫好的Chat UI 範本參考。
+
+本次範例使用Flyer Chat的Chat UI來快速建立一個Chat聊天室頁面。一起來看看這個Package怎麼使用吧～
 
 資料來源：[Flyer Chat官方文件](https://docs.flyer.chat/flutter/chat-ui/)
 
 ## Basic Usage
+基本使用方式
+
+
 1. 從pub.dev安裝所需要的package，flutter_chat_ui 1.6.8
 
     ```
@@ -20,9 +25,9 @@
 
 
 2. flutter_chat_ui 提供的Chat Widget，可以用來畫聊天室的UI，
-   包含聊天室歷史訊息與訊息輸入框，他提供了很多客製化的選項，基本使用需要以下三個必填參數。
+   包含聊天室歷史訊息與訊息輸入框，它提供了很多客製化的選項，基本使用需要以下三個必填參數`messages`、`user`、`onSendPressed`。
 
-      ```
+      ```dart
       Chat(  
         messages: [], //歷史訊息
         user: User(id: '82091008-a484-4a89-ae75-a22bf8d6f3ac'), //自己的資料，
@@ -31,8 +36,9 @@
         }, 
       )
       ```
-3. flutter_chat_ui支援的訊息類型很多，除了文字、影音訊息外，還支援SystemMessage以及檔案與客製化訊息。
-   它們都是繼承自共同的`Message`類。要使用這些類別需要引入另一個package，`flutter_chat_types`，這個package。
+3. flutter_chat_ui支援的訊息類型很多，除了文字、影音訊息外，還支援SystemMessage以及檔案與客製化訊息。從這些類的設計，也許可以啟發如何設計Chat App的各種資料。要使用這些類別需要引入另一個package——`flutter_chat_types`
+   
+   這個package，
    包含flutter_chat_ui所需要用到的類別，除了訊息類型也包含User、Room、PreviewData類型。
 
    ```
@@ -45,6 +51,8 @@
     dependencies:
     flutter_chat_ui: ^3.6.1
    ```
+   
+   訊息相關的類，它們都是繼承自共同的`Message`類
 
       ```dart
        //message.dart中列出的訊息種類
@@ -68,7 +76,7 @@
        }
       ```
    User類，除了user id 還可以設定firstName、imageUrl、role 等變量。
-   從這些類的設計，可以啟發如何設計Chat App的各種資料結構。
+   。
 
 
 4. 官方範例-basic
@@ -145,13 +153,12 @@
    ```
 
 ## 進階使用-分頁、Pagination
-1. 做聊天室的時候，如果歷史資料量非常龐大，每次開啟聊天室時將所有的聊天歷史資料從雲端下載下來，
-，會造成資料讀取時間拉長，也會對伺服器造成很大負擔。
-2. 通常會顯示前幾十筆資料，並在使用者滾動聊天室到底部時，再將雲端資料逐步下載，稱為pagination
-3. Chat Widget提供三個參數控制pagination，`onEndReached`, `onEndReachedThreshold` 和 `isLastPage`
-4. pagination提取資料的方式，依據後端設計不同，採取的方式也不同。在一個特定排序的資料表中，
-可以固定每20筆資料分為一頁。另一種方式是以document id作為起始點向後擷取20筆資料，或許還有其它的方式。
-5. 在網路上有看到pagination、infinite scroll、show more設計方式，三種的操作流程不同，基本核心概念還是分批次載入資料。
+做聊天室的時候，如果歷史資料量非常龐大，每次開啟聊天室時將所有的聊天歷史資料從雲端下載下來，，會造成資料讀取時間拉長，也會對伺服器造成很大負擔。
+* 通常會顯示前幾十筆資料，並在使用者滾動聊天室到底部時，再將雲端資料逐步下載，稱為pagination
+* Chat Widget提供三個參數控制pagination，`onEndReached`, `onEndReachedThreshold` 和 `isLastPage`
+* pagination提取資料的方式，依據後端設計不同，採取的方式也不同。在一個特定排序的資料表中，可以固定每20筆資料分為一頁。另一種方式是以document id作為起始點向後擷取20筆資料，或許還有其它的方式。
+
+在網路上有看到pagination、infinite scroll、show more設計方式，三種的操作流程不同，基本核心概念還是分批次載入資料。
 
 以下為官方提供的簡易範例
 ```dart
@@ -205,7 +212,7 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 ```
 
-## Mock message repository
+### Mock message repository
 由於我暫時沒有適合的後端，所以做一個Mock Repository。
 我選擇的獲取資料方式，是以某一個文件為起始點，繼續向後擷取數筆資料。
 
@@ -227,7 +234,7 @@ abstract class MessageRepository {
 
 ```
 
-### 實作Mock Repository
+#### 實作Mock Repository
 Mock Repository用 `List<types.Message> remoteMessages = [];` 模擬雲端的資料，
 除了實作`fetchOlderMessage`，`fetchNewerMessage`，從 `remoteMessages`中取得數據並回傳外。
 也額外實現一個`init`方法，在初始化Mock Repository時將從`assets/messages.json`將模擬資料導入。
@@ -322,8 +329,114 @@ class MockMessageRepository implements MessageRepository {
     - assets/messages.json
 ```
 
-## 使用GetX進行狀態管理
+### 應用MockMessageRepository
 
 
 
-## 聊天室列表
+建造MockMessageRepository實例，以及宣告List陣列
+```dart
+  final MockMessageRepository _repository = MockMessageRepository();
+  final List<types.Message> _messages = [];
+```
+
+
+初始化資料以及獲取前20筆訊息，存入List
+
+```dart
+Future<void> initMessages() async {
+    await _repository.init(); //初始化
+    List<types.Message> messages =
+        await _repository.fetchOlderMessage(roomId, 20);
+    _messages.addAll(messages);
+    SchedulerBinding.instance.addPostFrameCallback((timeStamp) {
+      setState(() {});
+    });
+  }
+
+```
+
+畫面滾動到頂部時，繼續載入資料，並且更新List
+
+```dart
+Future<void> onEndReached() async {
+    List<types.Message> messages =
+        await _repository.fetchOlderMessage(roomId, 1, _messages.last);
+    setState(() {
+      _messages.addAll(messages);
+    });
+  }
+
+```
+
+
+完整程式碼：
+
+```dart
+
+class _MyHomePageState extends State<MyHomePage> {
+  final MockMessageRepository _repository = MockMessageRepository();
+  final List<types.Message> _messages = [];
+  final _user = const types.User(
+      id: '82091008-a484-4a89-ae75-a22bf8d6f3ac', firstName: '我');
+
+  final String roomId = "test_room_id";
+  Future<void> initMessages() async {
+    await _repository.init(); //初始化
+    List<types.Message> messages =
+        await _repository.fetchOlderMessage(roomId, 20);
+    _messages.addAll(messages);
+    SchedulerBinding.instance.addPostFrameCallback((timeStamp) {
+      setState(() {});
+    });
+  }
+
+  Future<void> onEndReached() async {
+    List<types.Message> messages =
+        await _repository.fetchOlderMessage(roomId, 1, _messages.last);
+    setState(() {
+      _messages.addAll(messages);
+    });
+  }
+
+  @override
+  void initState() {
+    initMessages();
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: Text(widget.title),
+      ),
+      body: Chat(
+        messages: _messages,
+        onSendPressed: (types.PartialText message) {
+          setState(() {
+            _messages.insert(
+                0,
+                types.TextMessage(
+                  author: _user,
+                  id: Uuid().v4(),
+                  text: message.text,
+                ));
+          });
+        },
+        onEndReached: onEndReached,
+        user: _user,
+        showUserNames: true,
+        showUserAvatars: true,
+      ),
+      // This trailing comma makes auto-formatting nicer for build methods.
+    );
+  }
+}
+
+```
+
+## 總結
+透過上面的範例，相信可以理解聊天室的基本邏輯是什麼，以及這個Package的基本使用方式。
+
+這個Package幫助你建立了各種訊息的UI顯示方式以及常見的功能，即使沒有要使用它，它也會是個不錯的參考資料。
