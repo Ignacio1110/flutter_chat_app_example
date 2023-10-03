@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 import 'package:uuid/uuid.dart';
@@ -46,6 +47,9 @@ class _MyHomePageState extends State<MyHomePage> {
     List<types.Message> messages =
         await _repository.fetchOlderMessage(roomId, 20);
     _messages.addAll(messages);
+    SchedulerBinding.instance.addPostFrameCallback((timeStamp) {
+      setState(() {});
+    });
   }
 
   Future<void> onEndReached() async {
